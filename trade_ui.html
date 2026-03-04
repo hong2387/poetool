@@ -519,6 +519,9 @@
     const LOW_CONFIDENCE_COUNT_THRESHOLD = 5;
     const PRICING_UNDER_CONSTRUCTION = true;
     const USER_PREFS_KEY = "scarab.ui.prefs.v1";
+    const POE1_INDEX_STATE_URL = "https://poe.ninja/poe1/api/data/index-state";
+    const POE1_EXCHANGE_OVERVIEW_URL = "https://poe.ninja/poe1/api/economy/exchange/current/overview";
+    const POE1_ITEM_OVERVIEW_URL = "https://poe.ninja/api/data/itemoverview";
     const state = {
       rows: [],
       filtered: [],
@@ -591,10 +594,19 @@
 
     async function loadLeagues() {
       try {
-        const res = await fetch("/api/leagues", { cache: "no-store" });
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-        fillLeagueOptions(payload.leagues || []);
+        const payload = await fetchJsonStrict(POE1_INDEX_STATE_URL);
+        const economy = Array.isArray(payload && payload.economyLeagues) ? payload.economyLeagues : [];
+        const oldEconomy = Array.isArray(payload && payload.oldEconomyLeagues) ? payload.oldEconomyLeagues : [];
+        const names = [];
+        const seen = new Set();
+        [...economy, ...oldEconomy].forEach((league) => {
+          if (!league || typeof league !== "object") return;
+          const name = String(league.name || "").trim();
+          if (!name || seen.has(name)) return;
+          seen.add(name);
+          names.push(name);
+        });
+        fillLeagueOptions(names);
       } catch (_err) {
         fillLeagueOptions(DEFAULT_LEAGUES);
       }
@@ -637,6 +649,22 @@
 
     function syncWatchMinChangeInput() {
       els.watchMinChangeSetting.value = state.watchMinChange === null ? "" : String(state.watchMinChange);
+    }
+
+    async function fetchJsonStrict(url) {
+      const res = await fetch(url, { cache: "no-store" });
+      const raw = await res.text();
+      let payload = null;
+      try {
+        payload = raw ? JSON.parse(raw) : null;
+      } catch (_err) {
+        throw new Error(`遠端回傳非 JSON（HTTP ${res.status}）`);
+      }
+      if (!res.ok) {
+        const msg = payload && payload.error ? payload.error : `HTTP ${res.status}`;
+        throw new Error(String(msg));
+      }
+      return payload;
     }
 
     function saveUserPrefs() {
@@ -1123,40 +1151,11 @@
 
     async function loadOrderbook(row) {
       if (!row || !row._tradeId) return;
-      const token = ++state.orderbookToken;
-      const league = resolveLeague();
-      const type = resolveType();
       els.orderbookTitle.textContent = `市場深度：${row.名稱 || row._tradeId}`;
-      els.orderbookRatio.textContent = "市場比例：載入中...";
-      els.orderbookStatus.textContent = "狀態：載入中";
-      els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">載入中...</div>';
-      els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">載入中...</div>';
-
-      try {
-        const params = new URLSearchParams({ league, type, id: row._tradeId });
-        const res = await fetch(`/api/orderbook?${params.toString()}`, { cache: "no-store" });
-        const payload = await res.json();
-        if (token !== state.orderbookToken) return;
-        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
-
-        const available = payload.available_trades || [];
-        const competitive = payload.competitive_trades || [];
-        const warn = payload.warning || "";
-        let status = "狀態：即時資料";
-        if (warn === "trade_api_cooldown") status = "狀態：官方限流，暫無即時深度";
-        else if (warn === "no_live_depth") status = "狀態：目前無即時掛單";
-
-        els.orderbookRatio.textContent = `市場比例：${payload.market_ratio || "-"}`;
-        els.orderbookStatus.textContent = status;
-        renderDepthTable(els.orderbookAvailable, available, "chaos");
-        renderDepthTable(els.orderbookCompetitive, competitive, "chaos");
-      } catch (_err) {
-        if (token !== state.orderbookToken) return;
-        els.orderbookRatio.textContent = "市場比例：-";
-        els.orderbookStatus.textContent = "狀態：載入失敗";
-        els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">載入失敗。</div>';
-        els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">載入失敗。</div>';
-      }
+      els.orderbookRatio.textContent = "市場比例：-";
+      els.orderbookStatus.textContent = "狀態：純前端模式暫不支援";
+      els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">GitHub Pages 純前端模式暫不支援深度資料。</div>';
+      els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">GitHub Pages 純前端模式暫不支援深度資料。</div>';
     }
 
     function renderExpectationCell(row) {
@@ -1329,6 +1328,11 @@
     }
 
     async function loadPriceSpreads(league, type, rows, forceLive = false) {
+      if (PRICING_UNDER_CONSTRUCTION) {
+        state.spreadLoading = false;
+        refreshRetryLiveBtn();
+        return;
+      }
       const warningText = (code) => {
         if (!code) return "";
         if (code === "history_100pt_only_mode") return "歷史近100筆分群估算模式";
@@ -1366,37 +1370,13 @@
         const batchStart = i + 1;
         const batchEnd = Math.min(ids.length, i + batch.length);
         setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...（處理 ${batchStart}-${batchEnd}）`);
-        const params = new URLSearchParams({ league, type });
-        if (forceLive) params.set("force_live", "1");
-        batch.forEach((id) => params.append("id", id));
-        try {
-          const res = await fetch(`/api/price-spreads?${params.toString()}`, { cache: "no-store" });
-          const payload = await res.json();
-          if (!res.ok) continue;
-          const signals = payload.signals || {};
-          if (payload.warning) state.spreadWarning = payload.warning;
-
-          rows.forEach((row) => {
-            if (!batch.includes(row._tradeId)) return;
-            applySpreadToRow(row, signals[row._tradeId] || null);
-          });
-          if (token !== state.spreadLoadToken) {
-            state.spreadLoading = false;
-            refreshRetryLiveBtn();
-            return;
-          }
-          done = Math.min(ids.length, i + batch.length);
-          setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...`);
-          applyFilter();
-        } catch (_err) {
-          rows.forEach((row) => {
-            if (!batch.includes(row._tradeId)) return;
-            applySpreadToRow(row, null);
-          });
-          done = Math.min(ids.length, i + batch.length);
-          setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...`);
-          applyFilter();
-        }
+        rows.forEach((row) => {
+          if (!batch.includes(row._tradeId)) return;
+          applySpreadToRow(row, null);
+        });
+        done = Math.min(ids.length, i + batch.length);
+        setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...`);
+        applyFilter();
       }
       if (token === state.spreadLoadToken) {
         const warnLabel = warningText(state.spreadWarning);
@@ -1430,15 +1410,21 @@
       els.meta.innerHTML = "";
       resetOrderbookPanel();
 
-      const params = new URLSearchParams({ league, overview, type });
       try {
-        const res = await fetch(`/api/trades?${params.toString()}`, { cache: "no-store" });
-        const payload = await res.json();
-        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+        const q = new URLSearchParams({ league, type }).toString();
+        let sourceUrl = `${POE1_EXCHANGE_OVERVIEW_URL}?${q}`;
+        let data = await fetchJsonStrict(sourceUrl);
+        let resolvedOverview = "exchange";
+        let fallbackUsed = false;
+        const lines = Array.isArray(data && data.lines) ? data.lines : [];
+        if (lines.length === 0) {
+          sourceUrl = `${POE1_ITEM_OVERVIEW_URL}?${q}`;
+          data = await fetchJsonStrict(sourceUrl);
+          resolvedOverview = "item";
+          fallbackUsed = true;
+        }
 
-        const data = payload.data || {};
         state.divineToChaos = calcDivineToChaos(data.core || null);
-        const resolvedOverview = String(payload.overview || overview);
         let normalizedAll = resolvedOverview === "item"
           ? normalizeItemRows(data)
           : normalizeExchangeRows(data);
@@ -1456,12 +1442,12 @@
 
         const fetchedAt = new Date().toLocaleString("zh-TW", { hour12: false });
         state.lastMeta = {
-          league: payload.league,
-          type: payload.type,
+          league,
+          type,
           totalRows: normalizedAll.length,
           fetchedAt,
           overview: resolvedOverview,
-          fallbackUsed: payload.fallback_used === true,
+          fallbackUsed,
         };
         renderMeta(state.lastMeta, normalizedAll.length);
         refreshLowConfidenceToggle();
@@ -1472,7 +1458,7 @@
         if (normalizedAll.length === 0) {
           setStatus(`${state.baseStatusMsg} ${emptyExchangeHint(type)}`, true);
         } else {
-          setStatus(state.baseStatusMsg);
+          setStatus(`${state.baseStatusMsg}（資料來源：${sourceUrl}）`);
         }
         maybeLoadSpreadsForPricingTab();
       } catch (err) {
