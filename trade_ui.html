@@ -518,6 +518,7 @@
     ];
     const LOW_CONFIDENCE_COUNT_THRESHOLD = 5;
     const PRICING_UNDER_CONSTRUCTION = true;
+    const USER_PREFS_KEY = "scarab.ui.prefs.v1";
     const state = {
       rows: [],
       filtered: [],
@@ -636,6 +637,45 @@
 
     function syncWatchMinChangeInput() {
       els.watchMinChangeSetting.value = state.watchMinChange === null ? "" : String(state.watchMinChange);
+    }
+
+    function saveUserPrefs() {
+      try {
+        const payload = {
+          watchMinChange: state.watchMinChange,
+          expectations: state.expectations,
+        };
+        localStorage.setItem(USER_PREFS_KEY, JSON.stringify(payload));
+      } catch (_err) {
+        // Ignore storage failures (private mode/quota/etc.)
+      }
+    }
+
+    function loadUserPrefs() {
+      try {
+        const raw = localStorage.getItem(USER_PREFS_KEY);
+        if (!raw) return;
+        const payload = JSON.parse(raw);
+        const watchMin = Number(payload && payload.watchMinChange);
+        state.watchMinChange = Number.isFinite(watchMin) ? watchMin : null;
+
+        const expIn = payload && typeof payload.expectations === "object" ? payload.expectations : {};
+        const restored = {};
+        Object.entries(expIn || {}).forEach(([key, val]) => {
+          if (!val || typeof val !== "object") return;
+          const price = Number(val.price);
+          if (!Number.isFinite(price) || price <= 0) return;
+          restored[String(key)] = {
+            price,
+            unit: val.unit === "divine" ? "divine" : "chaos",
+            mode: val.mode === "above" ? "above" : "below",
+          };
+        });
+        state.expectations = restored;
+      } catch (_err) {
+        state.watchMinChange = null;
+        state.expectations = {};
+      }
     }
 
     function resolveLeague() {
@@ -1501,6 +1541,7 @@
         const n = Number(raw);
         state.watchMinChange = Number.isFinite(n) ? n : null;
       }
+      saveUserPrefs();
       if (state.lastMeta) renderMeta(state.lastMeta, state.lastMeta.totalRows);
       applyFilter();
     });
@@ -1547,6 +1588,7 @@
           mode: modeEl.value === "above" ? "above" : "below",
         };
       }
+      saveUserPrefs();
       if (state.activeTab === "watch") applyFilter();
       else renderTable();
     });
@@ -1579,6 +1621,7 @@
     });
 
     async function init() {
+      loadUserPrefs();
       fillTypeOptions();
       await loadLeagues();
       syncWatchMinChangeInput();
