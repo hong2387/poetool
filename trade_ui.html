@@ -1,0 +1,1595 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>POE 交易查詢面板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-1: #f6efe2;
+      --bg-2: #f0dbc2;
+      --ink: #1f1a14;
+      --card: #fffaf2cc;
+      --line: #e7d8c5;
+      --accent: #0b6e4f;
+      --warn: #7f1d1d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Barlow", sans-serif;
+      background:
+        radial-gradient(1200px 700px at 5% -10%, #ffd6a0 0%, transparent 55%),
+        radial-gradient(1000px 600px at 100% 0%, #d5f2e8 0%, transparent 60%),
+        linear-gradient(140deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 16px 28px;
+      animation: fadeIn 450ms ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(1.5rem, 2.8vw, 2.5rem);
+      font-family: "Space Grotesk", sans-serif;
+      letter-spacing: 0.02em;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 12px;
+      align-items: center;
+    }
+    .tab-btn {
+      width: auto;
+      border-radius: 999px;
+      border: 1px solid #d4c3ae;
+      padding: 8px 14px;
+      background: #fff8ee;
+      color: var(--ink);
+      font-family: "Space Grotesk", sans-serif;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      border-color: transparent;
+      background: linear-gradient(120deg, var(--accent), #1a8f68);
+      color: #fff;
+    }
+    .settings-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+    .gear-btn {
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid #d4c3ae;
+      padding: 0;
+      background: #fff8ee;
+      color: var(--ink);
+      font-size: 1.05rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .gear-btn:hover { background: #fff2df; }
+    .settings-pop {
+      position: absolute;
+      top: 46px;
+      right: 0;
+      z-index: 30;
+      display: none;
+      width: 240px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fffaf2;
+      box-shadow: 0 14px 35px -24px #00000066;
+      padding: 10px;
+    }
+    .settings-pop.open { display: block; }
+    .settings-pop label {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.84rem;
+      margin-bottom: 4px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--card);
+      backdrop-filter: blur(4px);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 14px 35px -24px #00000066;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1.2fr 1.4fr 1.4fr 1.4fr 0.8fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.84rem;
+      margin-bottom: 4px;
+    }
+
+    input, select, button {
+      width: 100%;
+      border: 1px solid #d4c3ae;
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: #fffaf2;
+      color: var(--ink);
+      font: inherit;
+    }
+
+    button {
+      font-family: "Space Grotesk", sans-serif;
+      background: linear-gradient(120deg, var(--accent), #1a8f68);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0 8px;
+      font-size: 0.95rem;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #fff8ee;
+    }
+
+    .search {
+      margin: 8px 0 12px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .lowconf-toggle {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: #fff8ee;
+      white-space: nowrap;
+      font-family: "Space Grotesk", sans-serif;
+      font-size: 0.9rem;
+    }
+    .lowconf-toggle input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+    }
+
+    .cat-box {
+      margin: 10px 0 12px;
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .cat {
+      border: 1px solid #d9c8b2;
+      background: #fff;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.82rem;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: auto;
+      max-height: 68vh;
+      background: #fffefb;
+    }
+
+    table { border-collapse: collapse; min-width: 1060px; width: 100%; }
+    th, td {
+      border-bottom: 1px solid #f0e4d5;
+      text-align: left;
+      padding: 7px 8px;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #ffefd8;
+      font-family: "Space Grotesk", sans-serif;
+      font-weight: 600;
+    }
+    tr:hover td { background: #fff8ea; }
+
+    .status { margin: 10px 0 2px; min-height: 20px; }
+    .err { color: var(--warn); font-weight: 600; }
+    .regex-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff8ee;
+      margin: 10px 0 12px;
+    }
+    .regex-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .regex-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .regex-actions button {
+      width: auto;
+      padding: 7px 10px;
+      font-size: 0.84rem;
+    }
+    .regex-output {
+      width: 100%;
+      min-height: 70px;
+      resize: vertical;
+      border: 1px solid #d4c3ae;
+      border-radius: 10px;
+      padding: 9px 10px;
+      font: 0.9rem/1.4 "Barlow", sans-serif;
+      background: #fffdf9;
+    }
+    .pick-col {
+      width: 42px;
+      min-width: 42px;
+      text-align: center;
+    }
+    .depth-col {
+      width: 72px;
+      min-width: 72px;
+      text-align: center;
+    }
+    .depth-btn {
+      width: auto;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+    .expect-col {
+      min-width: 300px;
+      width: 300px;
+    }
+    .expect-wrap {
+      display: grid;
+      grid-template-columns: 1fr 92px 86px;
+      gap: 6px;
+      align-items: center;
+    }
+    .expect-wrap input,
+    .expect-wrap select {
+      padding: 6px 7px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      background: #fffdf9;
+    }
+    .expect-hint {
+      margin-top: 3px;
+      font-size: 0.76rem;
+      color: #6a5740;
+      line-height: 1.25;
+      white-space: normal;
+    }
+    .pick-box {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    .orderbook-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff8ee;
+      margin: 10px 0 12px;
+    }
+    .orderbook-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 0.88rem;
+      align-items: center;
+    }
+    .orderbook-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .orderbook-side {
+      border: 1px solid #e5d6c4;
+      border-radius: 10px;
+      background: #fffdf9;
+      overflow: hidden;
+    }
+    .orderbook-side h3 {
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 0.86rem;
+      font-family: "Space Grotesk", sans-serif;
+      background: #f8ead6;
+    }
+    .orderbook-side table {
+      min-width: 100%;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .orderbook-side th,
+    .orderbook-side td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #f1e6d8;
+      font-size: 0.82rem;
+      white-space: nowrap;
+      text-align: left;
+    }
+    .orderbook-side th {
+      background: #fff4e2;
+      position: static;
+      font-family: "Space Grotesk", sans-serif;
+    }
+    .orderbook-empty {
+      padding: 10px;
+      font-size: 0.82rem;
+      color: #6a5740;
+    }
+
+    @media (max-width: 1100px) {
+      .controls { grid-template-columns: 1fr 1fr; }
+      .controls .full { grid-column: 1 / -1; }
+      .orderbook-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>POE 交易查詢面板</h1>
+    <div class="tabs">
+      <button id="tabAll" class="tab-btn active" type="button">完整市場</button>
+      <button id="tabWatch" class="tab-btn" type="button">價格狙擊</button>
+      <button id="tabPricing" class="tab-btn" type="button">施工中</button>
+      <div class="settings-wrap">
+        <button id="settingsBtn" class="gear-btn" type="button" aria-label="設定">⚙</button>
+        <div id="settingsPop" class="settings-pop">
+          <label for="watchMinChangeSetting">狙擊門檻(7日變化%)</label>
+          <input id="watchMinChangeSetting" type="number" step="0.01" placeholder="例如：20">
+        </div>
+      </div>
+    </div>
+    <section class="panel">
+      <div class="controls">
+        <div class="field">
+          <label for="league">聯盟</label>
+          <select id="league">
+            <option value="Keepers">Keepers</option>
+            <option value="__custom__">自訂...</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="type">項目類別</label>
+          <select id="type"></select>
+        </div>
+
+        <div class="field">
+          <label for="customLeague">自訂聯盟（可選）</label>
+          <input id="customLeague" placeholder="例如：NewLeagueName">
+        </div>
+
+        <div class="field">
+          <label for="customType">自訂類別（可選）</label>
+          <input id="customType" placeholder="例如：Scarab / Currency">
+        </div>
+
+        <div class="field">
+          <label for="limit">顯示筆數</label>
+          <input id="limit" type="number" min="1" value="500">
+        </div>
+
+        <div class="field full">
+          <div class="action-row">
+            <button id="loadBtn">載入交易資料</button>
+            <button id="retryLiveBtn" type="button">手動重試即時API</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="status"></div>
+      <div class="meta" id="meta"></div>
+      <div class="cat-box" id="categories"></div>
+      <div class="search">
+        <input id="search" placeholder="搜尋名稱或欄位內容...">
+        <label id="lowConfToggle" class="lowconf-toggle" for="showLowConf">
+          <input id="showLowConf" type="checkbox">
+          <span>顯示低信心</span>
+        </label>
+      </div>
+
+      <div class="regex-box">
+        <div class="regex-head">
+          <strong id="pickSummary">已勾選 0 件</strong>
+          <div class="regex-actions">
+            <button id="clearPickBtn" type="button">清空勾選</button>
+            <button id="copyRegexBtn" type="button">複製 Regex</button>
+          </div>
+        </div>
+        <textarea id="regexOutput" class="regex-output" readonly placeholder="勾選物品後會自動產生 Regex"></textarea>
+      </div>
+
+      <div class="orderbook-box">
+        <div class="orderbook-head">
+          <strong id="orderbookTitle">市場深度：尚未選擇物品</strong>
+          <span class="chip" id="orderbookRatio">市場比例：-</span>
+          <span class="chip" id="orderbookStatus">狀態：待命</span>
+        </div>
+        <div class="orderbook-grid">
+          <section class="orderbook-side">
+            <h3>可用交易（你買入）</h3>
+            <div id="orderbookAvailable" class="orderbook-empty">點「深度」按鈕載入。</div>
+          </section>
+          <section class="orderbook-side">
+            <h3>競爭交易（你賣出）</h3>
+            <div id="orderbookCompetitive" class="orderbook-empty">點「深度」按鈕載入。</div>
+          </section>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const APP_VERSION = "local-2026-03-03-tab-pricing-v1";
+    const ESTIMATE_COLUMNS = new Set([
+      "買價估(神聖)",
+      "賣價估(神聖)",
+      "買價時間",
+      "賣價時間",
+      "買價估(混沌)",
+      "賣價估(混沌)",
+      "差異(混沌)",
+      "差異(%)",
+      "價差基準",
+    ]);
+    const EXCHANGE_TYPES = [
+      "Currency", "Fragment", "Scarab", "Oil", "Incubator", "Fossil", "Resonator", "Essence",
+      "Tattoo", "Omen", "DivinationCard", "SkillGem", "BaseType", "Map", "UniqueMap",
+      "BlightedMap", "BlightRavagedMap", "UniqueJewel", "UniqueFlask", "UniqueWeapon",
+      "UniqueArmour", "UniqueAccessory", "Invitation", "Memory", "Artifact", "Vial",
+      "Beast", "DeliriumOrb", "ClusterJewel", "IncursionTemple", "UniqueRelic",
+      "KalguuranRune", "AllflameEmber", "Coffin", "Runegraft", "ForbiddenJewel"
+    ];
+    const EXCHANGE_TYPE_SUGGESTIONS = [
+      "Currency", "Fragment", "Scarab", "Oil", "Fossil", "Resonator", "Essence",
+      "Tattoo", "Omen", "DivinationCard", "Artifact", "DeliriumOrb", "AllflameEmber", "Runegraft"
+    ];
+    const DEFAULT_LEAGUES = [
+      "Keepers", "Standard", "Hardcore", "SSF Standard", "Hardcore SSF",
+      "Ruthless Standard", "Ruthless Hardcore", "SSF Ruthless Standard", "SSF Ruthless Hardcore"
+    ];
+    const LOW_CONFIDENCE_COUNT_THRESHOLD = 5;
+    const PRICING_UNDER_CONSTRUCTION = true;
+    const state = {
+      rows: [],
+      filtered: [],
+      columns: [],
+      selectedKeys: new Set(),
+      rowByKey: {},
+      expectations: {},
+      activeTab: "all",
+      divineToChaos: null,
+      lastMeta: null,
+      spreadLoadToken: 0,
+      baseStatusMsg: "",
+      spreadWarning: "",
+      orderbookToken: 0,
+      spreadLoading: false,
+      retryLiveCooldownUntil: 0,
+      spreadsLoaded: false,
+      showLowConfidence: false,
+      watchMinChange: null,
+    };
+
+    const els = {
+      tabAll: document.getElementById("tabAll"),
+      tabWatch: document.getElementById("tabWatch"),
+      tabPricing: document.getElementById("tabPricing"),
+      league: document.getElementById("league"),
+      type: document.getElementById("type"),
+      customLeague: document.getElementById("customLeague"),
+      customType: document.getElementById("customType"),
+      limit: document.getElementById("limit"),
+      settingsBtn: document.getElementById("settingsBtn"),
+      settingsPop: document.getElementById("settingsPop"),
+      watchMinChangeSetting: document.getElementById("watchMinChangeSetting"),
+      search: document.getElementById("search"),
+      lowConfToggle: document.getElementById("lowConfToggle"),
+      showLowConf: document.getElementById("showLowConf"),
+      status: document.getElementById("status"),
+      meta: document.getElementById("meta"),
+      categories: document.getElementById("categories"),
+      loadBtn: document.getElementById("loadBtn"),
+      retryLiveBtn: document.getElementById("retryLiveBtn"),
+      clearPickBtn: document.getElementById("clearPickBtn"),
+      copyRegexBtn: document.getElementById("copyRegexBtn"),
+      regexOutput: document.getElementById("regexOutput"),
+      pickSummary: document.getElementById("pickSummary"),
+      orderbookTitle: document.getElementById("orderbookTitle"),
+      orderbookRatio: document.getElementById("orderbookRatio"),
+      orderbookStatus: document.getElementById("orderbookStatus"),
+      orderbookAvailable: document.getElementById("orderbookAvailable"),
+      orderbookCompetitive: document.getElementById("orderbookCompetitive"),
+      tableHead: document.querySelector("#table thead"),
+      tableBody: document.querySelector("#table tbody"),
+    };
+
+    function fillTypeOptions() {
+      const current = els.type.value;
+      els.type.innerHTML = EXCHANGE_TYPES.map((v) => `<option value="${v}">${v}</option>`).join("") + '<option value="__custom__">自訂...</option>';
+      if (current && EXCHANGE_TYPES.includes(current)) els.type.value = current;
+      else els.type.value = "Currency";
+    }
+
+    function fillLeagueOptions(leagues) {
+      const current = els.league.value;
+      const list = (Array.isArray(leagues) && leagues.length > 0) ? leagues : DEFAULT_LEAGUES;
+      const uniq = [...new Set(list.map((v) => String(v || "").trim()).filter(Boolean))];
+      els.league.innerHTML = uniq.map((v) => `<option value="${v}">${v}</option>`).join("") + '<option value="__custom__">自訂...</option>';
+      if (current && uniq.includes(current)) els.league.value = current;
+      else els.league.value = uniq[0] || "__custom__";
+    }
+
+    async function loadLeagues() {
+      try {
+        const res = await fetch("/api/leagues", { cache: "no-store" });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+        fillLeagueOptions(payload.leagues || []);
+      } catch (_err) {
+        fillLeagueOptions(DEFAULT_LEAGUES);
+      }
+    }
+
+    function setActiveTab(tabName) {
+      if (tabName === "watch") state.activeTab = "watch";
+      else if (tabName === "pricing") state.activeTab = "pricing";
+      else state.activeTab = "all";
+      els.tabAll.classList.toggle("active", state.activeTab === "all");
+      els.tabWatch.classList.toggle("active", state.activeTab === "watch");
+      els.tabPricing.classList.toggle("active", state.activeTab === "pricing");
+      refreshRetryLiveBtn();
+      if (state.lastMeta) renderMeta(state.lastMeta, state.lastMeta.totalRows);
+      applyFilter();
+      maybeLoadSpreadsForPricingTab();
+      if (state.activeTab === "pricing" && PRICING_UNDER_CONSTRUCTION) {
+        setStatus("買賣估價：施工中，暫時不可使用。");
+      }
+    }
+
+    function activeTabLabel() {
+      if (state.activeTab === "watch") return "價格狙擊";
+      if (state.activeTab === "pricing") return "買賣估價";
+      return "完整市場";
+    }
+
+    function canToggleLowConfidence() {
+      return !!state.lastMeta
+        && state.lastMeta.overview === "item"
+        && String(state.lastMeta.type || "").trim() === "SkillGem";
+    }
+
+    function refreshLowConfidenceToggle() {
+      const enabled = canToggleLowConfidence();
+      els.lowConfToggle.style.display = enabled ? "inline-flex" : "none";
+      if (!enabled) state.showLowConfidence = false;
+      els.showLowConf.checked = !!state.showLowConfidence;
+    }
+
+    function syncWatchMinChangeInput() {
+      els.watchMinChangeSetting.value = state.watchMinChange === null ? "" : String(state.watchMinChange);
+    }
+
+    function resolveLeague() {
+      const custom = els.customLeague.value.trim();
+      if (els.league.value !== "__custom__") return els.league.value;
+      if (custom) return custom;
+      const first = [...els.league.options].map((o) => o.value).find((v) => v && v !== "__custom__");
+      return first || "Keepers";
+    }
+
+    function resolveType() {
+      const custom = els.customType.value.trim();
+      if (els.type.value !== "__custom__") return els.type.value;
+      if (custom) return custom;
+      return "Currency";
+    }
+
+    function calcDivineToChaos(core) {
+      if (!core || !core.rates) return null;
+      const chaosRate = Number(core.rates.chaos);
+      const divineRate = Number(core.rates.divine);
+      if (Number.isFinite(chaosRate) && chaosRate > 0 && Number.isFinite(divineRate) && divineRate > 0) {
+        return chaosRate / divineRate;
+      }
+      if (core.primary === "chaos" && Number.isFinite(divineRate) && divineRate > 0) {
+        return 1 / divineRate;
+      }
+      if (core.primary === "divine" && Number.isFinite(chaosRate) && chaosRate > 0) {
+        return chaosRate;
+      }
+      return null;
+    }
+
+    function getRowChaosValue(row) {
+      const raw = Number(row._chaosRaw);
+      if (Number.isFinite(raw) && raw > 0) return raw;
+      const byText = Number(String(row["價值(混沌)"] || "").replace(/,/g, ""));
+      return (Number.isFinite(byText) && byText > 0) ? byText : null;
+    }
+
+    function toChaosValue(price, unit) {
+      const n = Number(price);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      if (unit === "chaos") return n;
+      if (unit === "divine") {
+        if (!Number.isFinite(state.divineToChaos) || state.divineToChaos <= 0) return null;
+        return n * state.divineToChaos;
+      }
+      return null;
+    }
+
+    function matchesExpectation(row) {
+      const exp = state.expectations[row._key];
+      if (!exp) return false;
+      const currentChaos = getRowChaosValue(row);
+      const expectedChaos = toChaosValue(exp.price, exp.unit);
+      if (!Number.isFinite(currentChaos) || !Number.isFinite(expectedChaos)) return false;
+      if (exp.mode === "above") return currentChaos >= expectedChaos;
+      return currentChaos <= expectedChaos;
+    }
+
+    function rowChangePct(row) {
+      if (state.showLowConfidence && Number.isFinite(Number(row._lowSparkChange))) return Number(row._lowSparkChange);
+      if (Number.isFinite(Number(row._sparkChange))) return Number(row._sparkChange);
+      const text = String(row["7日變化"] || "").replace("%", "").replace(/,/g, "").trim();
+      const parsed = Number(text);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function watchChangeMinValue() {
+      const n = Number(state.watchMinChange);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function hasAnyExpectations() {
+      return Object.keys(state.expectations).length > 0;
+    }
+
+    function matchesWatchChangeThreshold(row) {
+      const min = watchChangeMinValue();
+      if (min === null) return false;
+      const change = rowChangePct(row);
+      if (change === null) return false;
+      return change >= min;
+    }
+
+    function scarabCategory(name) {
+      if (!name || typeof name !== "string") return "";
+      if (name.includes(" Scarab")) return name.split(" Scarab")[0] || "Scarab";
+      if (name.endsWith(" Lure")) return "Lure";
+      return name.split(" ")[0] || "";
+    }
+
+    function fmtNum(value, digits = 2) {
+      if (value === null || value === undefined || value === "") return "";
+      const n = Number(value);
+      if (Number.isNaN(n)) return String(value);
+      return n.toLocaleString("zh-TW", { maximumFractionDigits: digits });
+    }
+
+    function fmtPct(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const n = Number(value);
+      if (Number.isNaN(n)) return "";
+      const sign = n > 0 ? "+" : "";
+      return `${sign}${n.toFixed(2)}%`;
+    }
+
+    function fmtIndexedTime(value) {
+      const text = String(value || "").trim();
+      if (!text) return "無資料";
+      const dt = new Date(text);
+      if (Number.isNaN(dt.getTime())) return text;
+      return dt.toLocaleString("zh-TW", { hour12: false });
+    }
+
+    function fmtCompact(value) {
+      if (value === null || value === undefined || value === "") return "";
+      const n = Number(value);
+      if (Number.isNaN(n)) return "";
+      const abs = Math.abs(n);
+      if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+      if (abs >= 1_000) {
+        const k = n / 1_000;
+        return Number.isInteger(k) ? `${k.toFixed(0)}k` : `${k.toFixed(1)}k`;
+      }
+      if (abs >= 100) return n.toFixed(0);
+      if (abs >= 10) return n.toFixed(1);
+      return n.toFixed(2);
+    }
+
+    function setStatus(msg, isError = false) {
+      els.status.className = `status${isError ? " err" : ""}`;
+      els.status.textContent = msg;
+    }
+
+    function renderMeta(info, rowsCount) {
+      const sourceLabel = info.overview === "item"
+        ? "物品總覽"
+        : (info.overview === "currency" ? "貨幣總覽" : "交易所總覽");
+      const chips = [
+        `版本：${APP_VERSION}`,
+        `聯盟：${info.league}`,
+        `項目類別：${info.type}`,
+        `資料類型：${sourceLabel}`,
+        `總筆數：${rowsCount}`,
+        `頁籤：${activeTabLabel()}`,
+      ];
+      if (info.fallbackUsed) chips.push("來源回退：exchange -> item");
+      if (info.fetchedAt) chips.push(`抓取時間：${info.fetchedAt}`);
+      const watchMin = watchChangeMinValue();
+      if (watchMin !== null) chips.push(`狙擊門檻：7日變化 >= ${fmtNum(watchMin, 2)}%`);
+      if (Number.isFinite(state.divineToChaos) && state.divineToChaos > 0) {
+        chips.push(`1 神聖 ≈ ${fmtNum(state.divineToChaos, 2)} 混沌`);
+      }
+      els.meta.innerHTML = chips.map((v) => `<span class="chip">${v}</span>`).join("");
+    }
+
+    function emptyExchangeHint(typeName) {
+      const t = String(typeName || "").trim();
+      const shortlist = EXCHANGE_TYPE_SUGGESTIONS.join(" / ");
+      return `類別「${t}」在目前聯盟的交易所總覽可能沒有資料；建議改用：${shortlist}`;
+    }
+
+    function renderCategoriesFromRows(rows, typeName) {
+      const categories = {};
+      rows.forEach((r) => {
+        const c = String(r.類別 || "");
+        if (!c) return;
+        categories[c] = (categories[c] || 0) + 1;
+      });
+      if (Object.keys(categories).length === 0) {
+        els.categories.innerHTML = "";
+        return;
+      }
+      const sorted = Object.entries(categories).sort((a, b) => a[0].localeCompare(b[0]));
+      els.categories.innerHTML = sorted.map(([k, v]) => `<span class="cat">${k} (${v})</span>`).join("");
+    }
+
+    function toTargetValue(primaryValue, core, targetId) {
+      if (primaryValue === null || primaryValue === undefined) return null;
+      if (!core || !core.primary) return null;
+      if (targetId === core.primary) return Number(primaryValue);
+      const rate = core.rates ? core.rates[targetId] : null;
+      if (rate === null || rate === undefined) return null;
+      return Number(primaryValue) * Number(rate);
+    }
+
+    function normalizeMostPopular(line, itemName, core) {
+      const rate = Number(line.maxVolumeRate);
+      const currencyId = line.maxVolumeCurrency;
+      if (!rate || !currencyId) return "";
+
+      const coreItems = (core && core.items) ? core.items : [];
+      const matched = coreItems.find((x) => x.id === currencyId);
+      const currencyName = matched ? matched.name : currencyId;
+      const perItem = 1 / rate;
+      return `${fmtCompact(perItem)} ${currencyName} ↔ 1 ${itemName}`;
+    }
+
+    function normalizeValue(line, itemName, core) {
+      const primaryId = core && core.primary ? core.primary : "";
+      const coreItems = (core && core.items) ? core.items : [];
+      const primary = coreItems.find((x) => x.id === primaryId);
+      const primaryName = primary ? primary.name : primaryId;
+      const val = Number(line.primaryValue);
+      if (Number.isNaN(val)) return "";
+      return `${fmtCompact(val)} ${primaryName} ↔ 1 ${itemName}`;
+    }
+
+    function normalizeVolumePerHour(line, core) {
+      const primaryId = core && core.primary ? core.primary : "";
+      const coreItems = (core && core.items) ? core.items : [];
+      const primary = coreItems.find((x) => x.id === primaryId);
+      const primaryName = primary ? primary.name : primaryId;
+      const val = Number(line.volumePrimaryValue);
+      if (Number.isNaN(val)) return "";
+      return `${fmtCompact(val)} ${primaryName}`;
+    }
+
+    function normalizeExchangeRows(payloadData) {
+      const lines = payloadData && payloadData.lines ? payloadData.lines : [];
+      const items = payloadData && payloadData.items ? payloadData.items : [];
+      const core = payloadData && payloadData.core ? payloadData.core : null;
+      const byId = Object.fromEntries(items.map((x) => [x.id, x]));
+
+      return lines
+        .map((line) => {
+          const item = byId[line.id] || {};
+          const name = item.name || line.id || "";
+          const chaosValue = toTargetValue(line.primaryValue, core, "chaos");
+          const divineValue = toTargetValue(line.primaryValue, core, "divine");
+          const sparkChange = Number(line.sparkline && line.sparkline.totalChange);
+
+          return {
+            _key: item.detailsId || line.id || name,
+            _detailId: item.detailsId || line.id || "",
+            _tradeId: line.id || item.detailsId || "",
+            名稱: name,
+            類別: item.category || scarabCategory(name),
+            Value: normalizeValue(line, name, core),
+            "7日變化": fmtPct(line.sparkline && line.sparkline.totalChange),
+            "Volume / Hour": normalizeVolumePerHour(line, core),
+            "Most Popular": normalizeMostPopular(line, name, core),
+            "價值(混沌)": fmtNum(chaosValue, 2),
+            "價值(神聖)": fmtNum(divineValue, 2),
+            "狙擊原因": "",
+            "買價估(神聖)": "載入中",
+            "賣價估(神聖)": "載入中",
+            "買價時間": "載入中",
+            "賣價時間": "載入中",
+            "買價估(混沌)": "載入中",
+            "賣價估(混沌)": "載入中",
+            "差異(混沌)": "載入中",
+            "差異(%)": "載入中",
+            "價差基準": "載入中",
+            詳細ID: item.detailsId || line.id || "",
+            _chaosRaw: Number.isFinite(Number(chaosValue)) ? Number(chaosValue) : null,
+            _divineRaw: Number.isFinite(Number(divineValue)) ? Number(divineValue) : null,
+            _sparkChange: Number.isFinite(sparkChange) ? sparkChange : null,
+            _lowSparkChange: null,
+          };
+        })
+        .sort((a, b) => (Number(String(b["價值(混沌)"]).replace(/,/g, "")) || 0) - (Number(String(a["價值(混沌)"]).replace(/,/g, "")) || 0));
+    }
+
+    function normalizeItemRows(payloadData) {
+      const lines = payloadData && payloadData.lines ? payloadData.lines : [];
+      return lines
+        .map((line) => {
+          const name = String(line.name || line.baseType || line.id || "");
+          const chaosValue = Number(line.chaosValue);
+          const divineValue = Number(line.divineValue);
+          const listed = Number(line.count);
+          const listingCount = Number(line.listingCount);
+          const lowConfidence = !Number.isFinite(listed) || listed < LOW_CONFIDENCE_COUNT_THRESHOLD;
+          const normalChange = Number(line.sparkLine && line.sparkLine.totalChange);
+          const lowConfChange = Number(line.lowConfidenceSparkLine && line.lowConfidenceSparkLine.totalChange);
+          const level = line.gemLevel ?? line.mapTier ?? line.levelRequired ?? "";
+          const quality = line.gemQuality ?? "";
+          const corrupted = line.corrupted === true ? "yes" : (line.corrupted === false ? "no" : "");
+
+          return {
+            _key: line.detailsId || line.id || name,
+            _detailId: line.detailsId || line.id || "",
+            _tradeId: line.id || line.detailsId || "",
+            名稱: name,
+            類別: line.itemClass || scarabCategory(name),
+            等級: level,
+            品質: quality,
+            汙染: corrupted,
+            "價值(混沌)": Number.isFinite(chaosValue) ? fmtNum(chaosValue, 2) : "",
+            "價值(神聖)": Number.isFinite(divineValue) ? fmtNum(divineValue, 2) : "",
+            "狙擊原因": "",
+            "7日變化": fmtPct(normalChange),
+            "# Listed": Number.isFinite(listingCount) ? fmtNum(listingCount, 0) : (Number.isFinite(listed) ? fmtNum(listed, 0) : ""),
+            "買價估(神聖)": "載入中",
+            "賣價估(神聖)": "載入中",
+            "買價時間": "載入中",
+            "賣價時間": "載入中",
+            "買價估(混沌)": "載入中",
+            "賣價估(混沌)": "載入中",
+            "差異(混沌)": "載入中",
+            "差異(%)": "載入中",
+            "價差基準": "載入中",
+            詳細ID: line.detailsId || line.id || "",
+            _chaosRaw: Number.isFinite(chaosValue) ? chaosValue : null,
+            _divineRaw: Number.isFinite(divineValue) ? divineValue : null,
+            _listingCount: Number.isFinite(listingCount) ? listingCount : (Number.isFinite(listed) ? listed : null),
+            _countRaw: Number.isFinite(listed) ? listed : null,
+            _sparkChange: Number.isFinite(normalChange) ? normalChange : null,
+            _lowSparkChange: Number.isFinite(lowConfChange) ? lowConfChange : null,
+            _lowConfidence: lowConfidence,
+          };
+        })
+        .sort((a, b) => (Number(String(b["價值(混沌)"]).replace(/,/g, "")) || 0) - (Number(String(a["價值(混沌)"]).replace(/,/g, "")) || 0));
+    }
+
+    function pickColumns(rows) {
+      const set = new Set();
+      rows.forEach((r) => Object.keys(r).forEach((k) => { if (!k.startsWith("_")) set.add(k); }));
+      const preferred = [
+        "名稱",
+        "類別",
+        "Value",
+        "價值(混沌)",
+        "價值(神聖)",
+        "買價估(神聖)",
+        "賣價估(神聖)",
+        "買價時間",
+        "賣價時間",
+        "買價估(混沌)",
+        "賣價估(混沌)",
+        "差異(混沌)",
+        "差異(%)",
+        "價差基準",
+        "7日變化",
+        "Volume / Hour",
+        "Most Popular",
+        "詳細ID",
+      ];
+      const ordered = preferred.filter((k) => set.has(k));
+      [...set].forEach((k) => {
+        if (!ordered.includes(k)) ordered.push(k);
+      });
+      return ordered;
+    }
+
+    function escapeRegex(text) {
+      return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function regexTokenFromText(text) {
+      return escapeRegex(text.trim()).replace(/\s+/g, "\\s+");
+    }
+
+    function buildUniqueShortToken(name, allNames) {
+      const target = String(name || "").trim();
+      if (!target) return "";
+
+      const targetLower = target.toLowerCase();
+      const others = allNames
+        .map((n) => String(n || "").toLowerCase())
+        .filter((n) => n && n !== targetLower);
+
+      const clean = target.replace(/\s+/g, " ");
+      const len = clean.length;
+
+      // Find the shortest substring that only appears in this target name.
+      for (let size = 3; size <= len; size++) {
+        for (let start = 0; start + size <= len; start++) {
+          const raw = clean.slice(start, start + size).trim();
+          if (!raw) continue;
+          if (raw.length < 3) continue;
+          if (!/[A-Za-z0-9]/.test(raw)) continue;
+          const lower = raw.toLowerCase();
+          const hitOther = others.some((n) => n.includes(lower));
+          if (!hitOther) return raw;
+        }
+      }
+
+      return target;
+    }
+
+    function buildRegexFromSelection() {
+      const names = [];
+      state.selectedKeys.forEach((key) => {
+        const row = state.rowByKey[key];
+        if (!row || !row.名稱) return;
+        names.push(row.名稱);
+      });
+      if (names.length === 0) return "";
+      const uniq = [...new Set(names)].sort((a, b) => a.localeCompare(b));
+      const allNames = Object.values(state.rowByKey).map((r) => r.名稱).filter(Boolean);
+      const tokens = uniq.map((name) => buildUniqueShortToken(name, allNames)).map(regexTokenFromText);
+      return `(${tokens.join("|")})`;
+    }
+
+    function renderRegexPanel() {
+      const regex = buildRegexFromSelection();
+      els.regexOutput.value = regex;
+      els.pickSummary.textContent = `已勾選 ${state.selectedKeys.size} 件`;
+    }
+
+    function renderDepthTable(targetEl, entries, currencyHint) {
+      if (!Array.isArray(entries) || entries.length === 0) {
+        targetEl.innerHTML = '<div class="orderbook-empty">目前沒有可用資料。</div>';
+        return;
+      }
+      targetEl.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>比例</th>
+              <th>單價</th>
+              <th>庫存</th>
+              <th>掛單數</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.map((e) => {
+              const unit = Number(e.unit);
+              const cur = String(e.currency || currencyHint || "");
+              const ratio = unit >= 1 ? `1 : ${fmtNum(unit, 2)}` : `${fmtNum(1 / unit, 2)} : 1`;
+              const unitText = `${fmtNum(unit, 4)} ${cur === "divine" ? "神聖" : "混沌"}`;
+              return `<tr>
+                <td>${ratio}</td>
+                <td>${unitText}</td>
+                <td>${fmtNum(e.quantity, 0)}</td>
+                <td>${fmtNum(e.listings, 0)}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function resetOrderbookPanel() {
+      els.orderbookTitle.textContent = "市場深度：尚未選擇物品";
+      els.orderbookRatio.textContent = "市場比例：-";
+      els.orderbookStatus.textContent = "狀態：待命";
+      els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">點「深度」按鈕載入。</div>';
+      els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">點「深度」按鈕載入。</div>';
+    }
+
+    async function loadOrderbook(row) {
+      if (!row || !row._tradeId) return;
+      const token = ++state.orderbookToken;
+      const league = resolveLeague();
+      const type = resolveType();
+      els.orderbookTitle.textContent = `市場深度：${row.名稱 || row._tradeId}`;
+      els.orderbookRatio.textContent = "市場比例：載入中...";
+      els.orderbookStatus.textContent = "狀態：載入中";
+      els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">載入中...</div>';
+      els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">載入中...</div>';
+
+      try {
+        const params = new URLSearchParams({ league, type, id: row._tradeId });
+        const res = await fetch(`/api/orderbook?${params.toString()}`, { cache: "no-store" });
+        const payload = await res.json();
+        if (token !== state.orderbookToken) return;
+        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+
+        const available = payload.available_trades || [];
+        const competitive = payload.competitive_trades || [];
+        const warn = payload.warning || "";
+        let status = "狀態：即時資料";
+        if (warn === "trade_api_cooldown") status = "狀態：官方限流，暫無即時深度";
+        else if (warn === "no_live_depth") status = "狀態：目前無即時掛單";
+
+        els.orderbookRatio.textContent = `市場比例：${payload.market_ratio || "-"}`;
+        els.orderbookStatus.textContent = status;
+        renderDepthTable(els.orderbookAvailable, available, "chaos");
+        renderDepthTable(els.orderbookCompetitive, competitive, "chaos");
+      } catch (_err) {
+        if (token !== state.orderbookToken) return;
+        els.orderbookRatio.textContent = "市場比例：-";
+        els.orderbookStatus.textContent = "狀態：載入失敗";
+        els.orderbookAvailable.innerHTML = '<div class="orderbook-empty">載入失敗。</div>';
+        els.orderbookCompetitive.innerHTML = '<div class="orderbook-empty">載入失敗。</div>';
+      }
+    }
+
+    function renderExpectationCell(row) {
+      const exp = state.expectations[row._key] || {};
+      const mode = exp.mode === "above" ? "above" : "below";
+      const unit = exp.unit === "divine" ? "divine" : "chaos";
+      const price = Number(exp.price);
+      const hasPrice = Number.isFinite(price) && price > 0;
+
+      let hint = "未設定預期值";
+      if (hasPrice) {
+        const expectedChaos = toChaosValue(price, unit);
+        if (Number.isFinite(expectedChaos)) {
+          const expectedDivine = (Number.isFinite(state.divineToChaos) && state.divineToChaos > 0)
+            ? expectedChaos / state.divineToChaos
+            : null;
+          const modeText = mode === "above" ? "目前價格 >= 預期值" : "目前價格 <= 預期值";
+          const divineText = Number.isFinite(expectedDivine) ? `${fmtNum(expectedDivine, 2)} 神聖` : "無法換算神聖";
+          hint = `${modeText} | 約 ${fmtNum(expectedChaos, 2)} 混沌 / ${divineText}`;
+        } else {
+          hint = "缺少神聖/混沌比值，暫時無法換算。";
+        }
+      }
+
+      return `
+        <div class="expect-wrap">
+          <input class="exp-value" type="number" min="0" step="0.01" data-key="${String(row._key)}" value="${hasPrice ? String(price) : ""}" placeholder="預期價格">
+          <select class="exp-unit" data-key="${String(row._key)}">
+            <option value="chaos" ${unit === "chaos" ? "selected" : ""}>混沌</option>
+            <option value="divine" ${unit === "divine" ? "selected" : ""}>神聖</option>
+          </select>
+          <select class="exp-mode" data-key="${String(row._key)}">
+            <option value="below" ${mode === "below" ? "selected" : ""}>以下</option>
+            <option value="above" ${mode === "above" ? "selected" : ""}>以上</option>
+          </select>
+        </div>
+        <div class="expect-hint">${hint}</div>
+      `;
+    }
+
+    function renderTable() {
+      const cols = visibleColumns();
+      const allVisibleChecked = state.filtered.length > 0 && state.filtered.every((r) => state.selectedKeys.has(r._key));
+      els.tableHead.innerHTML = `<tr><th class="pick-col"><input class="pick-box" id="pickAll" type="checkbox" ${allVisibleChecked ? "checked" : ""}></th><th class="depth-col">深度</th><th class="expect-col">預期值設定</th>${cols.map((c) => `<th>${c}</th>`).join("")}</tr>`;
+      els.tableBody.innerHTML = state.filtered
+        .map((row) => `<tr><td class="pick-col"><input class="pick-box pick-item" type="checkbox" data-key="${String(row._key)}" ${state.selectedKeys.has(row._key) ? "checked" : ""}></td><td class="depth-col"><button class="depth-btn" type="button" data-depth-key="${String(row._key)}">深度</button></td><td class="expect-col">${renderExpectationCell(row)}</td>${cols.map((c) => `<td>${String(row[c] ?? "")}</td>`).join("")}</tr>`)
+        .join("");
+      renderRegexPanel();
+    }
+
+    function renderPricingConstruction() {
+      els.tableHead.innerHTML = "";
+      els.tableBody.innerHTML = '<tr><td style="padding:16px;font-weight:600;">買賣估價頁面施工中，功能暫停。</td></tr>';
+      renderRegexPanel();
+    }
+
+    function visibleColumns() {
+      if (state.activeTab === "watch") {
+        const cols = state.columns.filter((col) => col !== "狙擊原因" && !ESTIMATE_COLUMNS.has(col));
+        return ["狙擊原因", ...cols];
+      }
+      if (state.activeTab === "pricing") return state.columns;
+      return state.columns.filter((col) => !ESTIMATE_COLUMNS.has(col));
+    }
+
+    function applyFilter() {
+      if (state.activeTab === "pricing" && PRICING_UNDER_CONSTRUCTION) {
+        state.filtered = [];
+        renderPricingConstruction();
+        return;
+      }
+      const term = els.search.value.trim().toLowerCase();
+      let baseRows = [...state.rows];
+      baseRows.forEach((row) => {
+        const change = rowChangePct(row);
+        row["7日變化"] = fmtPct(change);
+      });
+      if (!state.showLowConfidence) {
+        baseRows = baseRows.filter((row) => !row._lowConfidence);
+      }
+      if (state.activeTab === "watch") {
+        const expEnabled = hasAnyExpectations();
+        const changeEnabled = watchChangeMinValue() !== null;
+        baseRows = baseRows.filter((row) => {
+          const expPass = expEnabled ? matchesExpectation(row) : false;
+          const changePass = changeEnabled ? matchesWatchChangeThreshold(row) : false;
+          const reasons = [];
+          if (changePass) reasons.push("7日變化");
+          if (expPass) reasons.push("預期價格");
+          row["狙擊原因"] = reasons.join(" + ");
+          if (expEnabled && changeEnabled) return expPass || changePass;
+          if (expEnabled) return expPass;
+          if (changeEnabled) return changePass;
+          return false;
+        });
+      } else {
+        baseRows.forEach((row) => { row["狙擊原因"] = ""; });
+      }
+      if (!term) state.filtered = baseRows;
+      else {
+        state.filtered = baseRows.filter((row) =>
+          Object.entries(row).some(([k, v]) => !k.startsWith("_") && String(v).toLowerCase().includes(term))
+        );
+      }
+      renderTable();
+    }
+
+    function applySpreadToRow(row, signal) {
+      if (!row) return;
+      if (!signal) {
+        row["買價估(神聖)"] = "無資料";
+        row["賣價估(神聖)"] = "無資料";
+        row["買價時間"] = "無資料";
+        row["賣價時間"] = "無資料";
+        row["買價估(混沌)"] = "無資料";
+        row["賣價估(混沌)"] = "無資料";
+        row["差異(混沌)"] = "無資料";
+        row["差異(%)"] = "無資料";
+        row["價差基準"] = "無資料";
+        return;
+      }
+      const d2c = Number(signal.divine_to_chaos);
+      const divineToChaos = (Number.isFinite(d2c) && d2c > 0)
+        ? d2c
+        : (Number.isFinite(Number(state.divineToChaos)) && Number(state.divineToChaos) > 0 ? Number(state.divineToChaos) : null);
+      const buyChaos = Number(signal.buy_chaos);
+      const sellChaos = Number(signal.sell_chaos);
+      const buyDivine = (divineToChaos && Number.isFinite(buyChaos)) ? (buyChaos / divineToChaos) : null;
+      const sellDivine = (divineToChaos && Number.isFinite(sellChaos)) ? (sellChaos / divineToChaos) : null;
+
+      row["買價估(神聖)"] = Number.isFinite(Number(buyDivine)) ? `${fmtNum(buyDivine, 4)} 神聖` : "無買單";
+      row["賣價估(神聖)"] = Number.isFinite(Number(sellDivine)) ? `${fmtNum(sellDivine, 4)} 神聖` : "無賣單";
+      row["買價時間"] = fmtIndexedTime(signal.buy_indexed);
+      row["賣價時間"] = fmtIndexedTime(signal.sell_indexed);
+      row["買價估(混沌)"] = Number.isFinite(Number(buyChaos)) ? fmtNum(buyChaos, 2) : "無買單";
+      row["賣價估(混沌)"] = Number.isFinite(Number(sellChaos)) ? fmtNum(sellChaos, 2) : "無賣單";
+      row["差異(混沌)"] = Number.isFinite(Number(signal.delta_chaos)) ? fmtNum(signal.delta_chaos, 2) : "N/A";
+      row["差異(%)"] = Number.isFinite(Number(signal.delta_pct)) ? fmtPct(signal.delta_pct) : "N/A";
+      if (signal.source === "orderbook_depth_estimate") row["價差基準"] = "即時深度加權";
+      else if (signal.source === "live_recent_5m_avg") row["價差基準"] = "即時近5分均價";
+      else if (signal.source === "history_100pt_2d_cluster") row["價差基準"] = "近2天100筆分群";
+      else if (signal.source === "history_100pt_2d_single") row["價差基準"] = "近2天100筆單群";
+      else if (signal.source === "history_100pt_today_cluster") row["價差基準"] = "當日近100筆分群";
+      else if (signal.source === "history_100pt_today_single") row["價差基準"] = "當日近100筆單群";
+      else if (signal.source === "history_100pt_cluster") row["價差基準"] = "歷史近100筆分群";
+      else if (signal.source === "history_100pt_single") row["價差基準"] = "歷史近100筆單群";
+      else if (signal.source === "history_10pt_estimate") row["價差基準"] = "歷史近10筆估算";
+      else if (signal.source === "history_10pt_nospread") row["價差基準"] = "歷史近10筆(無明顯價差)";
+      else if (signal.source === "history_estimate") row["價差基準"] = "歷史估算";
+      else if (signal.source === "overview_estimate") row["價差基準"] = "總覽估算";
+      else row["價差基準"] = "即時掛單";
+    }
+
+    function refreshRetryLiveBtn() {
+      const isPricingTab = state.activeTab === "pricing" && !PRICING_UNDER_CONSTRUCTION;
+      els.retryLiveBtn.style.display = isPricingTab ? "" : "none";
+      if (!isPricingTab) {
+        els.retryLiveBtn.textContent = "手動重試即時API";
+        els.retryLiveBtn.disabled = true;
+        return 0;
+      }
+      const now = Date.now();
+      const remainMs = Math.max(0, state.retryLiveCooldownUntil - now);
+      const remainSec = Math.ceil(remainMs / 1000);
+      const label = remainSec > 0 ? `手動重試即時API (${remainSec}s)` : "手動重試即時API";
+      els.retryLiveBtn.textContent = label;
+      const noRows = !Array.isArray(state.rows) || state.rows.length === 0;
+      els.retryLiveBtn.disabled = state.spreadLoading || remainSec > 0 || noRows;
+      return remainSec;
+    }
+
+    async function loadPriceSpreads(league, type, rows, forceLive = false) {
+      const warningText = (code) => {
+        if (!code) return "";
+        if (code === "history_100pt_only_mode") return "歷史近100筆分群估算模式";
+        if (code === "history_100pt_partial_or_missing") return "歷史近100筆資料不足（部分無法估算）";
+        if (code === "history_10pt_only_mode") return "歷史近10筆估算模式";
+        if (code === "history_10pt_partial_or_missing") return "歷史近10筆資料不足（部分無法估算）";
+        if (code === "live_skipped_use_manual_retry") return "省流模式：未自動呼叫官方API（可按手動重試）";
+        if (code === "trade_api_cooldown_fallback") return "官方API限流，已自動回退估算";
+        if (code === "partial_fallback_or_missing") return "部分項目使用回退估算";
+        return code;
+      };
+      const token = ++state.spreadLoadToken;
+      state.spreadWarning = "";
+      state.spreadLoading = true;
+      refreshRetryLiveBtn();
+      const ids = [...new Set(rows.map((r) => r._tradeId).filter(Boolean))];
+      if (ids.length === 0) {
+        state.spreadsLoaded = true;
+        state.spreadLoading = false;
+        refreshRetryLiveBtn();
+        return;
+      }
+
+      const batchSize = 20;
+      let done = 0;
+      const modeText = forceLive ? "手動重試即時API中" : "價差載入中";
+      setStatus(`${state.baseStatusMsg} ${modeText} 0/${ids.length}...`);
+      for (let i = 0; i < ids.length; i += batchSize) {
+        if (token !== state.spreadLoadToken) {
+          state.spreadLoading = false;
+          refreshRetryLiveBtn();
+          return;
+        }
+        const batch = ids.slice(i, i + batchSize);
+        const batchStart = i + 1;
+        const batchEnd = Math.min(ids.length, i + batch.length);
+        setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...（處理 ${batchStart}-${batchEnd}）`);
+        const params = new URLSearchParams({ league, type });
+        if (forceLive) params.set("force_live", "1");
+        batch.forEach((id) => params.append("id", id));
+        try {
+          const res = await fetch(`/api/price-spreads?${params.toString()}`, { cache: "no-store" });
+          const payload = await res.json();
+          if (!res.ok) continue;
+          const signals = payload.signals || {};
+          if (payload.warning) state.spreadWarning = payload.warning;
+
+          rows.forEach((row) => {
+            if (!batch.includes(row._tradeId)) return;
+            applySpreadToRow(row, signals[row._tradeId] || null);
+          });
+          if (token !== state.spreadLoadToken) {
+            state.spreadLoading = false;
+            refreshRetryLiveBtn();
+            return;
+          }
+          done = Math.min(ids.length, i + batch.length);
+          setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...`);
+          applyFilter();
+        } catch (_err) {
+          rows.forEach((row) => {
+            if (!batch.includes(row._tradeId)) return;
+            applySpreadToRow(row, null);
+          });
+          done = Math.min(ids.length, i + batch.length);
+          setStatus(`${state.baseStatusMsg} ${modeText} ${done}/${ids.length}...`);
+          applyFilter();
+        }
+      }
+      if (token === state.spreadLoadToken) {
+        const warnLabel = warningText(state.spreadWarning);
+        const warn = warnLabel ? ` (${warnLabel})` : "";
+        setStatus(`${state.baseStatusMsg} 價差載入完成${warn}。`);
+        state.spreadsLoaded = true;
+      }
+      state.spreadLoading = false;
+      refreshRetryLiveBtn();
+    }
+
+    function maybeLoadSpreadsForPricingTab() {
+      if (PRICING_UNDER_CONSTRUCTION) return;
+      if (state.activeTab !== "pricing") return;
+      if (state.spreadLoading || state.spreadsLoaded) return;
+      if (!Array.isArray(state.rows) || state.rows.length === 0) return;
+      loadPriceSpreads(resolveLeague(), resolveType(), state.rows);
+    }
+
+    async function loadData() {
+      const league = resolveLeague();
+      const overview = "exchange";
+      const type = resolveType();
+      const limit = Math.max(1, Number(els.limit.value) || 500);
+
+      setStatus("載入中...");
+      els.loadBtn.disabled = true;
+      state.spreadLoading = true;
+      refreshRetryLiveBtn();
+      els.categories.innerHTML = "";
+      els.meta.innerHTML = "";
+      resetOrderbookPanel();
+
+      const params = new URLSearchParams({ league, overview, type });
+      try {
+        const res = await fetch(`/api/trades?${params.toString()}`, { cache: "no-store" });
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || `HTTP ${res.status}`);
+
+        const data = payload.data || {};
+        state.divineToChaos = calcDivineToChaos(data.core || null);
+        const resolvedOverview = String(payload.overview || overview);
+        let normalizedAll = resolvedOverview === "item"
+          ? normalizeItemRows(data)
+          : normalizeExchangeRows(data);
+        if (!Number.isFinite(state.divineToChaos) || state.divineToChaos <= 0) {
+          const sample = normalizedAll.find((r) => Number.isFinite(r._chaosRaw) && r._chaosRaw > 0 && Number.isFinite(r._divineRaw) && r._divineRaw > 0);
+          state.divineToChaos = sample ? (sample._chaosRaw / sample._divineRaw) : null;
+        }
+
+        const normalized = normalizedAll.slice(0, limit);
+        state.rows = normalized;
+        state.rowByKey = Object.fromEntries(normalizedAll.map((r) => [r._key, r]));
+        state.columns = pickColumns(normalized);
+        state.selectedKeys = new Set();
+        state.spreadsLoaded = false;
+
+        const fetchedAt = new Date().toLocaleString("zh-TW", { hour12: false });
+        state.lastMeta = {
+          league: payload.league,
+          type: payload.type,
+          totalRows: normalizedAll.length,
+          fetchedAt,
+          overview: resolvedOverview,
+          fallbackUsed: payload.fallback_used === true,
+        };
+        renderMeta(state.lastMeta, normalizedAll.length);
+        refreshLowConfidenceToggle();
+        renderCategoriesFromRows(normalizedAll, type);
+        applyFilter();
+        renderRegexPanel();
+        state.baseStatusMsg = `完成：共 ${normalizedAll.length} 筆，顯示前 ${normalized.length} 筆。`;
+        if (normalizedAll.length === 0) {
+          setStatus(`${state.baseStatusMsg} ${emptyExchangeHint(type)}`, true);
+        } else {
+          setStatus(state.baseStatusMsg);
+        }
+        maybeLoadSpreadsForPricingTab();
+      } catch (err) {
+        state.rows = [];
+        state.filtered = [];
+        state.columns = [];
+        state.selectedKeys = new Set();
+        state.rowByKey = {};
+        state.divineToChaos = null;
+        state.lastMeta = null;
+        state.baseStatusMsg = "";
+        state.spreadWarning = "";
+        state.spreadLoadToken += 1;
+        state.spreadLoading = false;
+        state.retryLiveCooldownUntil = 0;
+        state.spreadsLoaded = false;
+        refreshRetryLiveBtn();
+        state.orderbookToken += 1;
+        els.tableHead.innerHTML = "";
+        els.tableBody.innerHTML = "";
+        refreshLowConfidenceToggle();
+        renderRegexPanel();
+        setStatus(`載入失敗：${err.message}`, true);
+      } finally {
+        els.loadBtn.disabled = false;
+        if (!state.spreadLoading) refreshRetryLiveBtn();
+      }
+    }
+
+    els.loadBtn.addEventListener("click", loadData);
+    els.retryLiveBtn.addEventListener("click", async () => {
+      if (state.activeTab !== "pricing") return;
+      if (state.spreadLoading) return;
+      const now = Date.now();
+      if (now < state.retryLiveCooldownUntil) return;
+      if (!Array.isArray(state.rows) || state.rows.length === 0) return;
+      state.retryLiveCooldownUntil = now + 15000;
+      refreshRetryLiveBtn();
+      const timer = setInterval(() => {
+        const left = refreshRetryLiveBtn();
+        if (left <= 0) clearInterval(timer);
+      }, 250);
+      try {
+        await loadPriceSpreads(resolveLeague(), resolveType(), state.rows, true);
+      } finally {
+        refreshRetryLiveBtn();
+      }
+    });
+    els.tabAll.addEventListener("click", () => setActiveTab("all"));
+    els.tabWatch.addEventListener("click", () => setActiveTab("watch"));
+    els.tabPricing.addEventListener("click", () => setActiveTab("pricing"));
+    els.search.addEventListener("input", applyFilter);
+    els.settingsBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      els.settingsPop.classList.toggle("open");
+    });
+    document.addEventListener("click", (ev) => {
+      const t = ev.target;
+      if (els.settingsPop.contains(t) || els.settingsBtn.contains(t)) return;
+      els.settingsPop.classList.remove("open");
+    });
+    els.watchMinChangeSetting.addEventListener("input", () => {
+      const raw = String(els.watchMinChangeSetting.value || "").trim();
+      if (raw === "") state.watchMinChange = null;
+      else {
+        const n = Number(raw);
+        state.watchMinChange = Number.isFinite(n) ? n : null;
+      }
+      if (state.lastMeta) renderMeta(state.lastMeta, state.lastMeta.totalRows);
+      applyFilter();
+    });
+    els.showLowConf.addEventListener("change", () => {
+      state.showLowConfidence = !!els.showLowConf.checked;
+      applyFilter();
+    });
+    els.tableHead.addEventListener("change", (ev) => {
+      const t = ev.target;
+      if (!t || t.id !== "pickAll") return;
+      if (t.checked) state.filtered.forEach((r) => state.selectedKeys.add(r._key));
+      else state.filtered.forEach((r) => state.selectedKeys.delete(r._key));
+      renderTable();
+      renderRegexPanel();
+    });
+    els.tableBody.addEventListener("change", (ev) => {
+      const t = ev.target;
+      if (!t) return;
+      if (t.classList.contains("pick-item")) {
+        const key = t.getAttribute("data-key");
+        if (!key) return;
+        if (t.checked) state.selectedKeys.add(key);
+        else state.selectedKeys.delete(key);
+        renderTable();
+        renderRegexPanel();
+        return;
+      }
+      if (!t.classList.contains("exp-value") && !t.classList.contains("exp-unit") && !t.classList.contains("exp-mode")) return;
+      const key = t.getAttribute("data-key");
+      if (!key) return;
+      const rowEl = t.closest("tr");
+      if (!rowEl) return;
+      const valueEl = rowEl.querySelector(".exp-value");
+      const unitEl = rowEl.querySelector(".exp-unit");
+      const modeEl = rowEl.querySelector(".exp-mode");
+      if (!valueEl || !unitEl || !modeEl) return;
+      const price = Number(valueEl.value);
+      if (!Number.isFinite(price) || price <= 0) {
+        delete state.expectations[key];
+      } else {
+        state.expectations[key] = {
+          price,
+          unit: unitEl.value === "divine" ? "divine" : "chaos",
+          mode: modeEl.value === "above" ? "above" : "below",
+        };
+      }
+      if (state.activeTab === "watch") applyFilter();
+      else renderTable();
+    });
+    els.tableBody.addEventListener("click", (ev) => {
+      const t = ev.target;
+      if (!t || !t.classList.contains("depth-btn")) return;
+      const key = t.getAttribute("data-depth-key");
+      if (!key) return;
+      const row = state.rowByKey[key] || state.rows.find((r) => r._key === key);
+      if (!row) return;
+      loadOrderbook(row);
+    });
+    els.clearPickBtn.addEventListener("click", () => {
+      state.selectedKeys.clear();
+      renderTable();
+      renderRegexPanel();
+    });
+    els.copyRegexBtn.addEventListener("click", async () => {
+      const text = els.regexOutput.value || "";
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Regex 已複製。");
+      } catch (_err) {
+        els.regexOutput.focus();
+        els.regexOutput.select();
+        document.execCommand("copy");
+        setStatus("Regex 已複製。");
+      }
+    });
+
+    async function init() {
+      fillTypeOptions();
+      await loadLeagues();
+      syncWatchMinChangeInput();
+      refreshLowConfidenceToggle();
+      renderRegexPanel();
+      refreshRetryLiveBtn();
+      resetOrderbookPanel();
+      await loadData();
+    }
+
+    init();
+  </script>
+</body>
+</html>

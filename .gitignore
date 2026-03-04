@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+
+build/
+backups/
+
+_tmp_*
+_poe_ninja_*
+
+client_trade_whispers.csv
+client_trade_whispers_only.csv
+
+*.log
