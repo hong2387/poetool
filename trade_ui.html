@@ -522,6 +522,7 @@
     const POE1_INDEX_STATE_URL = "https://poe.ninja/poe1/api/data/index-state";
     const POE1_EXCHANGE_OVERVIEW_URL = "https://poe.ninja/poe1/api/economy/exchange/current/overview";
     const POE1_ITEM_OVERVIEW_URL = "https://poe.ninja/api/data/itemoverview";
+    const CORS_PROXY_PREFIX = "https://api.codetabs.com/v1/proxy?quest=";
     const state = {
       rows: [],
       filtered: [],
@@ -652,19 +653,28 @@
     }
 
     async function fetchJsonStrict(url) {
-      const res = await fetch(url, { cache: "no-store" });
-      const raw = await res.text();
-      let payload = null;
-      try {
-        payload = raw ? JSON.parse(raw) : null;
-      } catch (_err) {
-        throw new Error(`遠端回傳非 JSON（HTTP ${res.status}）`);
+      const urls = [url, `${CORS_PROXY_PREFIX}${encodeURIComponent(url)}`];
+      let lastErr = null;
+      for (const candidate of urls) {
+        try {
+          const res = await fetch(candidate, { cache: "no-store" });
+          const raw = await res.text();
+          let payload = null;
+          try {
+            payload = raw ? JSON.parse(raw) : null;
+          } catch (_err) {
+            throw new Error(`遠端回傳非 JSON（HTTP ${res.status}）`);
+          }
+          if (!res.ok) {
+            const msg = payload && payload.error ? payload.error : `HTTP ${res.status}`;
+            throw new Error(String(msg));
+          }
+          return payload;
+        } catch (err) {
+          lastErr = err;
+        }
       }
-      if (!res.ok) {
-        const msg = payload && payload.error ? payload.error : `HTTP ${res.status}`;
-        throw new Error(String(msg));
-      }
-      return payload;
+      throw lastErr || new Error("Failed to fetch");
     }
 
     function saveUserPrefs() {
