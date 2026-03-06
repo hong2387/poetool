@@ -587,10 +587,11 @@
     function fillLeagueOptions(leagues) {
       const current = els.league.value;
       const list = (Array.isArray(leagues) && leagues.length > 0) ? leagues : DEFAULT_LEAGUES;
-      const uniq = [...new Set(list.map((v) => String(v || "").trim()).filter(Boolean))];
+      const normalized = list.map((v) => String(v || "").trim()).filter(Boolean);
+      const uniq = ["Mirage", ...normalized.filter((v) => v !== "Mirage")];
       els.league.innerHTML = uniq.map((v) => `<option value="${v}">${v}</option>`).join("") + '<option value="__custom__">自訂...</option>';
       if (current && uniq.includes(current)) els.league.value = current;
-      else els.league.value = uniq[0] || "__custom__";
+      else els.league.value = "Mirage";
     }
 
     async function loadLeagues() {
