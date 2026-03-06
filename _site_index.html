@@ -1,0 +1,121 @@
+﻿<!doctype html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>POE 交易查詢面板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Barlow:wght@400;600&display=swap"
+        rel="stylesheet">
+  <script type="module" crossorigin src="/poetool/assets/index-BUOE_s24.js"></script>
+  <link rel="stylesheet" crossorigin href="/poetool/assets/index-Ca2EfODS.css">
+</head>
+
+<body>
+    <main class="wrap">
+        <h1>POE 交易查詢面板</h1>
+        <div class="tabs">
+            <button id="tabAll" class="tab-btn active" type="button">完整市場</button>
+            <button id="tabWatch" class="tab-btn" type="button">價格狙擊</button>
+            <button id="tabPricing" class="tab-btn" type="button">施工中</button>
+            <div class="settings-wrap">
+                <button id="settingsBtn" class="gear-btn" type="button" aria-label="設定">⚙</button>
+                <div id="settingsPop" class="settings-pop">
+                    <label for="watchMinChangeSetting">狙擊門檻(7日變化%)</label>
+                    <input id="watchMinChangeSetting" type="number" step="0.01" placeholder="例如：20">
+                </div>
+            </div>
+        </div>
+        <section class="panel">
+            <div class="controls">
+                <div class="field">
+                    <label for="league">聯盟</label>
+                    <select id="league">
+                        <option value="Mirage">Mirage</option>
+                        <option value="__custom__">自訂...</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="type">項目類別</label>
+                    <select id="type"></select>
+                </div>
+
+                <div class="field">
+                    <label for="customLeague">自訂聯盟（可選）</label>
+                    <input id="customLeague" placeholder="例如：NewLeagueName">
+                </div>
+
+                <div class="field">
+                    <label for="customType">自訂類別（可選）</label>
+                    <input id="customType" placeholder="例如：Scarab / Currency">
+                </div>
+
+                <div class="field">
+                    <label for="limit">顯示筆數</label>
+                    <input id="limit" type="number" min="1" value="500">
+                </div>
+
+                <div class="field full">
+                    <div class="action-row">
+                        <button id="loadBtn">載入交易資料</button>
+                        <button id="retryLiveBtn" type="button" style="display: none;">手動重試即時API</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status" id="status">這是純前端展示版本，無法連接原後端即時資料。</div>
+            <div class="meta" id="meta"></div>
+            <div class="cat-box" id="categories"></div>
+            <div class="search">
+                <input id="search" placeholder="搜尋名稱或欄位內容...">
+                <label id="lowConfToggle" class="lowconf-toggle" for="showLowConf">
+                    <input id="showLowConf" type="checkbox">
+                    <span>顯示低信心</span>
+                </label>
+            </div>
+
+            <div class="regex-box">
+                <div class="regex-head">
+                    <strong id="pickSummary">已勾選 0 件</strong>
+                    <div class="regex-actions">
+                        <button id="clearPickBtn" type="button">清空勾選</button>
+                        <button id="copyRegexBtn" type="button">複製 Regex</button>
+                    </div>
+                </div>
+                <textarea id="regexOutput" class="regex-output" readonly placeholder="勾選物品後會自動產生 Regex"></textarea>
+            </div>
+
+            <div class="orderbook-box">
+                <div class="orderbook-head">
+                    <strong id="orderbookTitle">市場深度：尚未選擇物品</strong>
+                    <span class="chip" id="orderbookRatio">市場比例：-</span>
+                    <span class="chip" id="orderbookStatus">狀態：待命</span>
+                </div>
+                <div class="orderbook-grid">
+                    <section class="orderbook-side">
+                        <h3>可用交易（你買入）</h3>
+                        <div id="orderbookAvailable" class="orderbook-empty">點「深度」按鈕載入。</div>
+                    </section>
+                    <section class="orderbook-side">
+                        <h3>競爭交易（你賣出）</h3>
+                        <div id="orderbookCompetitive" class="orderbook-empty">點「深度」按鈕載入。</div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+</body>
+
+</html>

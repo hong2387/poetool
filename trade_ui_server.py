@@ -99,7 +99,7 @@ class TradeUIHandler(BaseHTTPRequestHandler):
 
     def _serve_trades(self, query: str) -> None:
         params = urllib.parse.parse_qs(query)
-        league = _first(params.get("league"), "Keepers")
+        league = _first(params.get("league"), "Mirage")
         type_name = _first(params.get("type"), "Scarab")
         requested_overview = _first(params.get("overview"), "exchange")
 
@@ -175,7 +175,7 @@ class TradeUIHandler(BaseHTTPRequestHandler):
 
     def _serve_price_spreads(self, query: str) -> None:
         params = urllib.parse.parse_qs(query)
-        league = _first(params.get("league"), "Keepers")
+        league = _first(params.get("league"), "Mirage")
         type_name = _first(params.get("type"), "Scarab")
         ids = [str(x).strip() for x in params.get("id", []) if str(x).strip()]
         if not ids:
@@ -230,7 +230,7 @@ class TradeUIHandler(BaseHTTPRequestHandler):
 
     def _serve_orderbook(self, query: str) -> None:
         params = urllib.parse.parse_qs(query)
-        league = _first(params.get("league"), "Keepers")
+        league = _first(params.get("league"), "Mirage")
         type_name = _first(params.get("type"), "Scarab")
         item_id = _first(params.get("id"), "")
         if not item_id:

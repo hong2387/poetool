@@ -19,7 +19,7 @@ import urllib.request
 from typing import Any, Dict, List
 
 API_BASE = "https://poe.ninja/api/data/currencyoverview"
-DEFAULT_LEAGUE = "Keepers"
+DEFAULT_LEAGUE = "Mirage"
 DEFAULT_TYPE = "Currency"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "

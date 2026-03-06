@@ -405,7 +405,7 @@
         <div class="field">
           <label for="league">聯盟</label>
           <select id="league">
-            <option value="Keepers">Keepers</option>
+            <option value="Mirage">Mirage</option>
             <option value="__custom__">自訂...</option>
           </select>
         </div>
@@ -513,7 +513,7 @@
       "Tattoo", "Omen", "DivinationCard", "Artifact", "DeliriumOrb", "AllflameEmber", "Runegraft"
     ];
     const DEFAULT_LEAGUES = [
-      "Keepers", "Standard", "Hardcore", "SSF Standard", "Hardcore SSF",
+      "Mirage", "Standard", "Hardcore", "SSF Standard", "Hardcore SSF",
       "Ruthless Standard", "Ruthless Hardcore", "SSF Ruthless Standard", "SSF Ruthless Hardcore"
     ];
     const LOW_CONFIDENCE_COUNT_THRESHOLD = 5;
@@ -721,7 +721,7 @@
       if (els.league.value !== "__custom__") return els.league.value;
       if (custom) return custom;
       const first = [...els.league.options].map((o) => o.value).find((v) => v && v !== "__custom__");
-      return first || "Keepers";
+      return first || "Mirage";
     }
 
     function resolveType() {
